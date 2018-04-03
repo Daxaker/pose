@@ -47,7 +47,16 @@ namespace Pose.Helpers
 
         public static MethodInfo GetRuntimeMethodForVirtual(Type type, MethodInfo methodInfo)
         {
+            return methodInfo;
             BindingFlags bindingFlags = BindingFlags.Instance | (methodInfo.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic);
+            if (methodInfo.ReflectedType != type && methodInfo.ReflectedType.IsInterface)
+            {
+                var iFaceMap = type.GetInterfaceMap(methodInfo.ReflectedType);
+                var result = iFaceMap.TargetMethods.First(x => x.ReflectedType == type && iFaceMap.TargetMethods[0].Name.EndsWith(methodInfo.Name));
+                return result;
+                //do some staff to find proper method
+            }
+
             Type[] types = methodInfo.GetParameters().Select(p => p.ParameterType).ToArray();
             return type.GetMethod(methodInfo.Name, bindingFlags, null, types, null);
         }
@@ -59,7 +68,7 @@ namespace Pose.Helpers
             if (shim.Type == null || type == shim.Type)
                 return $"{shim.Type}::{shim.Original.ToString()}" == $"{type}::{method.ToString()}";
 
-            if (type.IsSubclassOf(shim.Type))
+            if (shim.Type.IsAssignableFrom(type))
             {
                 if ((shim.Original.IsAbstract || !shim.Original.IsVirtual)
                         || (shim.Original.IsVirtual && !method.IsOverride()))
@@ -67,7 +76,7 @@ namespace Pose.Helpers
                     return $"{shim.Original.ToString()}" == $"{method.ToString()}";
                 }
             }
-
+           
             return false;
         }
     }

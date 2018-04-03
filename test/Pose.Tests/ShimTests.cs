@@ -15,6 +15,83 @@ namespace Pose.Tests
     [TestClass]
     public class ShimTests
     {
+        interface IInterface
+        {
+            int Foo();
+        }
+
+        class MyClass : IInterface
+        {
+            int IInterface.Foo() => 0;
+        }
+
+        abstract class AbstractClass : IInterface
+        {
+            public abstract int Foo();
+            public virtual int VrtFoo() => 0;
+        }
+
+        class AbstractImplementation : AbstractClass
+        {
+            public override int Foo()
+            {
+                return 0;
+            }
+        }
+        
+        class AbstractVirtualImplementation : AbstractClass
+        {
+            public override int Foo()
+            {
+                return 0;
+            }
+
+            public override int VrtFoo()
+            {
+                return 1;
+            }
+        }
+        
+        [TestMethod]
+        public void TestExplicit()
+        {
+            Shim shim = Shim.Replace(() => Is.A<IInterface>().Foo()).With((IInterface t) => 42);
+            var r =  new MyClass();
+            var res = 1;
+            PoseContext.Isolate(() => { res = ((IInterface)r).Foo(); }, shim);
+            Assert.AreEqual(42, res);
+        }
+
+        [TestMethod]
+        public void TestExplicitViaAbstract()
+        {
+            Shim shim = Shim.Replace(() => Is.A<AbstractClass>().Foo()).With((AbstractClass t) => 42);
+            var r =  new AbstractImplementation();
+            var res = 1;
+            PoseContext.Isolate(() => { res = r.Foo(); }, shim);
+            Assert.AreEqual(42, res);
+        }
+        
+        [TestMethod]
+        public void TestVirtualInstanceReplace()
+        {
+            var inst = new AbstractVirtualImplementation();
+            Shim shim = Shim.Replace(() => inst.VrtFoo()).With((AbstractVirtualImplementation t) => 42);
+            var res = 1;
+            PoseContext.Isolate(() => { res = inst.VrtFoo(); }, shim);
+            Assert.AreEqual(42, res);
+        }
+        
+        [TestMethod]
+        public void TestVirtual()
+        {
+            var inst = new AbstractVirtualImplementation();
+            Shim shim = Shim.Replace(() => Is.A<AbstractClass>().VrtFoo()).With((AbstractClass t) => 42);
+            var res = 1;
+            PoseContext.Isolate(() => { res = inst.VrtFoo(); }, shim);
+            Assert.AreEqual(42, res);
+        }
+
         [TestMethod]
         public void TestReplace()
         {
