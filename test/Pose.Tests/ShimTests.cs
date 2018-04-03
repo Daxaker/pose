@@ -51,7 +51,16 @@ namespace Pose.Tests
                 return 1;
             }
         }
-        
+
+        [TestMethod]
+        public void TestAreEqual()
+        {
+            Shim shim = Shim.Replace(() => Is.A<IInterface>().Foo()).With((IInterface t) => 42);
+            var r =  new MyClass();
+            PoseContext.Isolate(() => { Assert.AreEqual(42, ((IInterface) r).Foo()); }, shim);
+            
+        }        
+
         [TestMethod]
         public void TestExplicit()
         {
