@@ -47,18 +47,23 @@ namespace Pose.Helpers
 
         public static MethodInfo GetRuntimeMethodForVirtual(Type type, MethodInfo methodInfo)
         {
-            return methodInfo;
-            BindingFlags bindingFlags = BindingFlags.Instance | (methodInfo.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic);
             if (methodInfo.ReflectedType != type && methodInfo.ReflectedType.IsInterface)
             {
-                var iFaceMap = type.GetInterfaceMap(methodInfo.ReflectedType);
-                var result = iFaceMap.TargetMethods.First(x => x.ReflectedType == type && iFaceMap.TargetMethods[0].Name.EndsWith(methodInfo.Name));
-                return result;
-                //do some staff to find proper method
+                var methodInfoBody = methodInfo.GetMethodBody();
+                if (methodInfoBody == null)
+                {
+                    var interfaceMap = type.GetInterfaceMap(methodInfo.ReflectedType);
+                    var methods = interfaceMap.TargetMethods;
+                    var result = methods.First(x => x.Name.EndsWith(methodInfo.Name));
+                    return result;
+                }
+
             }
 
+            BindingFlags bindingFlags = BindingFlags.Instance | (methodInfo.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic);
             Type[] types = methodInfo.GetParameters().Select(p => p.ParameterType).ToArray();
-            return type.GetMethod(methodInfo.Name, bindingFlags, null, types, null);
+            var method = type.GetMethod(methodInfo.Name, bindingFlags, null, types, null);
+            return method;
         }
 
         public static Module GetOwningModule() => typeof(StubHelper).Module;
@@ -73,7 +78,8 @@ namespace Pose.Helpers
                 if ((shim.Original.IsAbstract || !shim.Original.IsVirtual)
                         || (shim.Original.IsVirtual && !method.IsOverride()))
                 {
-                    return $"{shim.Original.ToString()}" == $"{method.ToString()}";
+                    //return method.Name.EndsWith(shim.Original.Name);
+                    return $"{shim.Original.Name}" == $"{method.Name}";
                 }
             }
            
